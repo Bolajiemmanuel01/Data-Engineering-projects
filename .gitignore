@@ -1,0 +1,3 @@
+# ignore my local-only configuration
+nyc-taxi-etl/data/
+logs/
