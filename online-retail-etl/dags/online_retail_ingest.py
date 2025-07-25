@@ -29,6 +29,9 @@ def ingest_to_postgres(**context):
     # Obtain a SQLAlchemy engine from the hook for pandas to_sql
     engine = hook.get_sqlalchemy_engine()
 
+    # Truncate the staging table so we don’t double-load on reruns
+    hook.run(f"TRUNCATE TABLE {STAGING_TABLE};")
+
     # Loop through each CSV file path
     for csv_path in CSV_FILES:
         # Read CSV into a pandas DataFrame

@@ -1,0 +1,41 @@
+
+version: 2
+
+sources:
+  - name: online_retail
+    schema: staging
+    tables:
+      - name: online_retail_raw
+
+models:
+  - name: stg_online_retail
+    description: "Cleaned and Standardized staging table for Online retail data"
+    columns:
+      - name: invoice_no
+        description: "Unique invoice number for each transaction"
+        tests:
+         - not_null
+      - name: stock_code
+        description: "Prodcut Stock code"
+        tests:
+         - not_null
+      - name: description
+        description: "Prodcut description text"
+      - name: quantity
+        description: "Number of items purchased in the transaction"
+        tests:
+          - not_null
+      - name: invoice_date
+        description: "Timestamp when the invoice was generated"
+        tests:
+          - not_null
+      - name: unit_price
+        description: "Price per unit in sterling (£)"
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Identifier for the customer (can be null for anonymous)"
+      - name: country
+        description: "Country of customer residence"
+        tests:
+          - not_null
