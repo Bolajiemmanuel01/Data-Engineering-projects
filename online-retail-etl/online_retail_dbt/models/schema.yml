@@ -8,6 +8,7 @@ sources:
       - name: online_retail_raw
 
 models:
+  # 1) Staging model: cleans & standardizes the raw data
   - name: stg_online_retail
     description: "Cleaned and Standardized staging table for Online retail data"
     columns:
@@ -37,5 +38,80 @@ models:
         description: "Identifier for the customer (can be null for anonymous)"
       - name: country
         description: "Country of customer residence"
+        tests:
+          - not_null
+
+  # 2) Customer dimension
+  - name: dim_customer
+    description: "Dimension table of customers"
+    columns:
+      - name: customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+          - unique               # each customer only appears once
+      - name: country
+        description: "Country of customer residence"
+        tests:
+          - not_null
+
+  # 3) Product dimension
+  - name: dim_product
+    description: "Dimension table of products"
+    columns:
+      - name: stock_code
+        description: "Product code identifier"
+        tests:
+          - not_null
+          - unique
+      - name: description
+        description: "Product description text"
+
+  # 4) Date dimension
+  - name: dim_date
+    description: "Calendar dimension table"
+    columns:
+      - name: date_key
+        description: "Date key (date only) for joins"
+        tests:
+          - not_null
+          - unique
+      - name: year
+        description: "Year extracted from the date_key"
+      - name: month
+        description: "Month extracted from the date_key"
+      - name: day
+        description: "Day of month extracted from the date_key"
+      - name: weekday
+        description: "Weekday name extracted from the date_key"
+
+  # 5) Fact table
+  - name: fct_sales
+    description: "Fact table of sales transactions"
+    columns:
+      - name: invoice_no
+        description: "Invoice number for transaction line"
+        tests:
+          - not_null
+      - name: stock_code
+        description: "Product code for the sold item"
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Customer identifier for the sale"
+      - name: date_key
+        description: "Foreign key to dim_date.date_key"
+        tests:
+          - not_null
+      - name: quantity
+        description: "Number of units sold"
+        tests:
+          - not_null
+      - name: unit_price
+        description: "Unit price at time of sale"
+        tests:
+          - not_null
+      - name: revenue
+        description: "Revenue for the transaction line (quantity * unit_price)"
         tests:
           - not_null
