@@ -1,6 +1,7 @@
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
 from pathlib import Path
@@ -66,3 +67,27 @@ with DAG(
         python_callable=ingest_to_postgres, # Function to perform
         provide_context=True,           # Pass airflow context to the function
     )
+
+    dbt_run = BashOperator(
+        task_id="dbt_run_all",
+        bash_command=(
+            "cd /opt/airflow/dags/online-retail-etl/online_retail_dbt "
+            "&& source ../venv/Scripts/activate "       # activate venv if needed
+            "&& dbt run"                                 # build staging, dims, fact
+        ),
+        env={"DBT_PROFILES_DIR": "/opt/airflow/dags/online-retail-etl/online_retail_dbt"},  
+        # ensures dbt picks up profiles.yml
+    )
+
+    dbt_test = BashOperator(
+        task_id="dbt_test_all",
+        bash_command=(
+            "cd /opt/airflow/dags/online-retail-etl/online_retail_dbt "
+            "&& source ../venv/Scripts/activate "
+            "&& dbt test"                                # run all schema tests
+        ),
+        env={"DBT_PROFILES_DIR": "/opt/airflow/dags/online-retail-etl/online_retail_dbt"},
+    )
+
+    # Orchestrate: ingest → dbt run → dbt test
+    ingest_task >> dbt_run >> dbt_test

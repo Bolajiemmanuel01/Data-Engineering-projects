@@ -1,0 +1,36 @@
+# .github/workflows/dbt-docs-deploy.yml
+
+name: Deploy dbt Docs
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: [ dbt ]  # ensure dbt CI passed
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with: { python-version: "3.11" }
+
+      - name: Install dbt
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install dbt-core dbt-postgres
+
+      - name: Generate dbt docs
+        run: |
+          source venv/bin/activate
+          dbt docs generate
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/docs   # directory created by dbt docs

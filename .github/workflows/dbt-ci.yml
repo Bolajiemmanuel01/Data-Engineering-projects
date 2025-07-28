@@ -1,0 +1,52 @@
+# .github/workflows/dbt-ci.yml
+
+name: dbt CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv                    # isolate packages
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install dbt-core dbt-postgres     # dbt CLI + Postgres adapter
+
+      - name: Run dbt parse (syntax check)
+        run: |
+          source venv/bin/activate
+          dbt parse                             # lints models
+
+      - name: Build & test dbt models
+        run: |
+          source venv/bin/activate
+          dbt deps                              # install any packages
+          dbt run                               # builds staging, dims, fact
+          dbt test                              # runs all tests
+
+      - name: Upload dbt docs artifact
+        if: success()
+        run: |
+          source venv/bin/activate
+          dbt docs generate                   # produce documentation artifacts
+          tar -czf docs.tar.gz target/docs    # package for deployment
+        uses: actions/upload-artifact@v3
+        with:
+          name: dbt-docs
+          path: docs.tar.gz
