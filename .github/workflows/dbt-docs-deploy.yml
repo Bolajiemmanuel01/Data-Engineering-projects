@@ -12,6 +12,7 @@ jobs:
     needs: [ dbt ]  # ensure dbt CI passed
 
     steps:
+      - name: Check out code
       - uses: actions/checkout@v3
 
       - name: Set up Python
@@ -33,4 +34,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/docs   # directory created by dbt docs
+          publish_dir: ./online-retail-etl/online_retail_dbt/target/docs
+          publish_branch: gh-pages
+          # optional, to keep history:
+          keep_files: true
