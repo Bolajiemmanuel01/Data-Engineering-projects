@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: airflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  airflow:
+    image: apache/airflow:2.7.1
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__LOGGING__LOG_LEVEL: INFO
+      _PIP_ADDITIONAL_REQUIREMENTS: |
+        pandas
+        openpyxl
+        psycopg2-binary
+        apache-airflow-providers-postgres
+    volumes:
+      - ./online-retail-etl:/opt/airflow/dags/online-retail-etl
+      - ./nyc-taxi-etl:/opt/airflow/dags/nyc-taxi-etl
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    command: >
+      bash -c "airflow db init &&
+               airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
+               airflow scheduler & airflow webserver"
+volumes:
+  postgres-data:
