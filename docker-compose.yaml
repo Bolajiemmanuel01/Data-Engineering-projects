@@ -17,11 +17,14 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__LOGGING__LOG_LEVEL: INFO
+      AIRFLOW__SCHEDULER__FILE_PROCESSOR_PROCESS_TIMEOUT: "120"
+      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: "300"
       _PIP_ADDITIONAL_REQUIREMENTS: |
         pandas
         openpyxl
         psycopg2-binary
         apache-airflow-providers-postgres
+        pyarrow
     volumes:
       - ./online-retail-etl:/opt/airflow/dags/online-retail-etl
       - ./nyc-taxi-etl:/opt/airflow/dags/nyc-taxi-etl
