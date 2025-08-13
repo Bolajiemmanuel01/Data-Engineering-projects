@@ -7,6 +7,7 @@ from datetime import datetime
 import pandas as pd
 from io import StringIO
 from pathlib import Path
+import pyarrow.dataset as ds
 
 DATA_DIR     = Path(__file__).parent.parent / "data"
 PARQUET_GLOB = "*.parquet"
@@ -28,21 +29,23 @@ def ingest_to_postgres(**context):
 
     # 3) Loop through every parquet file
     for path in PARQUET_FILES:
-        df = pd.read_parquet(path)
-
-        # 4) Convert to CSV in-memory
-        buf = StringIO()
-        df.to_csv(buf, index=False)
-        buf.seek(0)
-
-        # 5) COPY into Postgres (much faster than INSERTs)
-        hook.copy_expert(
-            sql=f"""
-              COPY {STG_SCHEMA}.{STG_TABLE}
-              FROM STDIN WITH CSV HEADER
-            """,
-            filename_or_file=buf
-        )
+        # Read the parquet file
+        dataset = ds.dataset(path, format="parquet")
+        # Batch the dataset into manageable chunks
+        for batch in dataset.to_batches(batch_size=50000):
+            # Convert each batch to a pandas DataFrame
+            df = batch.to_pandas()
+            # Convert to CSV in-memory
+            buf = StringIO()
+            # Write the DataFrame to the buffer
+            df.to_csv(buf, index=False)
+            # Seek to the beginning of the buffer
+            buf.seek(0)
+            # COPY into Postgres (much faster than INSERTs)
+            hook.copy_expert(
+                sql=f"COPY {STG_SCHEMA}.{STG_TABLE} FROM STDIN WITH CSV HEADER",
+                filename_or_file=buf
+            )
 
         context['ti'].log.info(f"✅ Loaded {len(df):,} rows from {path.name}")
 
