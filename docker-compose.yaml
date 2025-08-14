@@ -19,7 +19,7 @@ services:
       AIRFLOW__LOGGING__LOG_LEVEL: INFO
       AIRFLOW__SCHEDULER__FILE_PROCESSOR_PROCESS_TIMEOUT: "120"
       AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: "300"
-      AIRFLOW_CONN_CRYPTO_DB: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto
+      AIRFLOW_CONN_CRYPTO_DB: postgresql://postgres:postgres@postgres:5432/crypto
       CRYPTO_COINS: bitcoin,ethereum,solana,binancecoin
       VS_CURRENCY: usd
       # dbt env for the BashOperator (matches profiles.yml in the starter)
