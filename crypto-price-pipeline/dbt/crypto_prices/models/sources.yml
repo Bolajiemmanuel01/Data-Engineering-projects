@@ -1,0 +1,10 @@
+version: 2
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: crypto_prices_raw
+        loaded_at_field: retrieved_at
+        freshness:
+          warn_after: {count: 2, period: hour}
+          error_after: {count: 6, period: hour}

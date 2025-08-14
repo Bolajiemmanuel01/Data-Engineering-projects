@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+dbt/crypto_prices/target/
+dbt/crypto_prices/logs/
