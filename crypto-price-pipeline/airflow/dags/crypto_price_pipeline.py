@@ -97,7 +97,7 @@ with DAG(
     init_db = PostgresOperator(
         task_id="init_db",
         postgres_conn_id=POSTGRES_CONN_ID,
-        sql="/opt/airflow/dags/include/sql/init.sql",
+        sql="include/sql/init.sql",
     )
 
     fetch_prices = PythonOperator(
