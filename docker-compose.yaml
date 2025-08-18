@@ -24,7 +24,7 @@ services:
       VS_CURRENCY: usd
       # dbt env for the BashOperator (matches profiles.yml in the starter)
       DBT_HOST: postgres
-      DBT_PORT: "5432"
+      DBT_PORT: 5432
       DBT_DB: crypto
       DBT_USER: postgres
       DBT_PASSWORD: postgres

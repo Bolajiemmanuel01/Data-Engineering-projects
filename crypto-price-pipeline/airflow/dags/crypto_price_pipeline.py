@@ -109,9 +109,9 @@ with DAG(
     dbt_env = {
         # dbt connection comes from env vars (see profiles.yml)
         "DBT_HOST": os.getenv("DBT_HOST", os.getenv("POSTGRES_HOST", "postgres")),
-        "DBT_USER": os.getenv("DBT_USER", os.getenv("POSTGRES_USER", "airflow")),
-        "DBT_PASSWORD": os.getenv("DBT_PASSWORD", os.getenv("POSTGRES_PASSWORD", "airflow")),
-        "DBT_PORT": os.getenv("DBT_PORT", os.getenv("POSTGRES_PORT", "5432")),
+        "DBT_USER": os.getenv("DBT_USER", os.getenv("POSTGRES_USER", "postgres")),
+        "DBT_PASSWORD": os.getenv("DBT_PASSWORD", os.getenv("POSTGRES_PASSWORD", "postgres")),
+        "DBT_PORT": os.getenv("DBT_PORT", os.getenv("POSTGRES_PORT", 5432)),
         "DBT_DB": os.getenv("DBT_DB", os.getenv("POSTGRES_DB", "crypto")),
     }
 
