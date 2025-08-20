@@ -6,7 +6,7 @@ crypto_profile:
       host: "{{ env_var('DBT_HOST') }}"
       user: "{{ env_var('DBT_USER') }}"
       password: "{{ env_var('DBT_PASSWORD') }}"
-      port: 5432
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
       dbname: "{{ env_var('DBT_DB', 'crypto') }}"
       schema: public
       threads: 4

@@ -25,7 +25,7 @@ DAG_ID = "crypto_price_pipeline"
 POSTGRES_CONN_ID = os.getenv("POSTGRES_CONN_ID", "crypto_db")
 DEFAULT_COINS = "bitcoin,ethereum,solana,binancecoin"
 DEFAULT_CURRENCY = "usd"
-DBT_DIR = "/opt/airflow/dags/../dbt/crypto_prices"  # adjust if needed
+DBT_DIR = "/opt/airflow/dbt/crypto_prices" # adjusted the path
 
 def get_param(name: str, default: str) -> str:
     # Prefer Airflow Variable; fallback to env; else default
