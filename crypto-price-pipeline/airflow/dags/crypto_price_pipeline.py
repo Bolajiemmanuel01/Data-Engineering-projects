@@ -117,15 +117,28 @@ with DAG(
 
     dbt_build = BashOperator(
         task_id="dbt_build",
-        bash_command=f"cd {DBT_DIR} && dbt deps --profiles-dir . && dbt seed --profiles-dir . && dbt run --profiles-dir .",
+        bash_command=(
+            "export PATH=$PATH:/home/airflow/.local/bin; "
+            "cd {{ params.dbt_dir }} && "
+            "dbt deps --profiles-dir . && "
+            "dbt seed --profiles-dir . && "
+            "dbt run --profiles-dir ."
+        ),
         env=dbt_env,
+        params={"dbt_dir": DBT_DIR},
     )
+
 
     # ---------- Optional DAG to test ----------
     dbt_test = BashOperator(
         task_id="dbt_test",
-        bash_command=f"cd {DBT_DIR} && dbt test --profiles-dir .",
+        bash_command=(
+            "export PATH=$PATH:/home/airflow/.local/bin; "
+            "cd {{ params.dbt_dir }} && "
+            "dbt test --profiles-dir ."
+        ),
         env=dbt_env,
+        params={"dbt_dir": DBT_DIR},
     )
 
     init_db >> fetch_prices >> dbt_build >> dbt_test
