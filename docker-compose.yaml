@@ -38,6 +38,7 @@ services:
         requests
         dbt-core==1.7.12
         dbt-postgres==1.7.12
+        great_expectations==0.18.12
     volumes:
       - ./online-retail-etl:/opt/airflow/dags/online-retail-etl
       - ./nyc-taxi-etl:/opt/airflow/dags/nyc-taxi-etl

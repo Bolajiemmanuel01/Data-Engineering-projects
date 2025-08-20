@@ -19,6 +19,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
 import requests
+from include.quality_checks import run_quality_checks
 
 # ---------- Config ----------
 DAG_ID = "crypto_price_pipeline"
@@ -141,4 +142,11 @@ with DAG(
         params={"dbt_dir": DBT_DIR},
     )
 
-    init_db >> fetch_prices >> dbt_build >> dbt_test
+
+    gx_checks = PythonOperator(
+        task_id="gx_checks",
+        python_callable=run_quality_checks,
+        op_kwargs={"conn_id": POSTGRES_CONN_ID, "max_age_hours": 24},
+    )
+
+    init_db >> fetch_prices >> dbt_build >> dbt_test >> gx_checks
