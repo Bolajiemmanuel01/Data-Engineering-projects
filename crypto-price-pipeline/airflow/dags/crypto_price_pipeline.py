@@ -19,7 +19,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
 import requests
-from include.quality_checks import run_quality_checks
+from .include.quality_checks import run_quality_checks
 
 # ---------- Config ----------
 DAG_ID = "crypto_price_pipeline"
