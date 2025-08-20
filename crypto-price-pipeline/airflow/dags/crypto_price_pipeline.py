@@ -48,7 +48,7 @@ def run_quality_checks(conn_id: str = "crypto_db", max_age_hours: int = 24) -> N
 
     sql = textwrap.dedent(f"""
         SELECT retrieved_at, coin_id, vs_currency, price, market_cap, volume_24h
-        FROM silver.stg_crypto_prices
+        FROM public_silver.stg_crypto_prices
         WHERE retrieved_at >= NOW() - INTERVAL '{max_age_hours} hours'
         ORDER BY retrieved_at DESC
     """)
