@@ -121,4 +121,11 @@ with DAG(
         env=dbt_env,
     )
 
-    init_db >> fetch_prices >> dbt_build
+    # ---------- Optional DAG to test ----------
+    dbt_test = BashOperator(
+        task_id="dbt_test",
+        bash_command=f"cd {DBT_DIR} && dbt test --profiles-dir .",
+        env=dbt_env,
+    )
+
+    init_db >> fetch_prices >> dbt_build >> dbt_test
