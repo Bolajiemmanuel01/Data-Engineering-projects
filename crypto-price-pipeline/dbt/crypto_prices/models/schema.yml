@@ -1,0 +1,71 @@
+version: 2
+
+seeds:
+  - name: coins
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+
+models:
+  - name: stg_crypto_prices
+    description: Flattened raw CoinGecko payload with typed fields.
+    columns:
+      - name: retrieved_at
+        tests: [not_null]
+      - name: coin_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('coins')   # seed table
+              field: id
+      - name: vs_currency
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['usd']
+      - name: price
+        tests: [not_null]
+      - name: market_cap
+        tests: []
+      - name: volume_24h
+        tests: []
+
+  - name: fct_price_points
+    description: Incremental fact of price points.
+    columns:
+      - name: retrieved_at
+        tests: [not_null]
+      - name: coin_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('coins')
+              field: id
+      - name: vs_currency
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['usd']
+      - name: price
+        tests: [not_null]
+
+  - name: fct_price_daily
+    description: Daily aggregates with pct change vs previous day.
+    columns:
+      - name: day
+        tests: [not_null]
+      - name: coin_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('coins')
+              field: id
+      - name: vs_currency
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['usd']
+      - name: avg_price
+        tests: [not_null]
