@@ -19,7 +19,7 @@ STG_TABLE     = "yellow_taxi_raw"           # we’ll COPY into staging.yellow_t
 
 def ingest_to_postgres(**context):
     hook   = PostgresHook(postgres_conn_id=CONN_ID)
-    engine = hook.get_sqlalchemy_engine()
+    # engine = hook.get_sqlalchemy_engine()
 
     # 1) Ensure staging schema exists
     hook.run(f"CREATE SCHEMA IF NOT EXISTS {STG_SCHEMA};")
@@ -27,14 +27,24 @@ def ingest_to_postgres(**context):
     # 2) Drop the old table if it exists (fast, avoids OOM)
     hook.run(f"DROP TABLE IF EXISTS {STG_SCHEMA}.{STG_TABLE};")
 
+    created_table = False
+    table_rows = 0
+
     # 3) Loop through every parquet file
     for path in PARQUET_FILES:
         # Read the parquet file
         dataset = ds.dataset(path, format="parquet")
         # Batch the dataset into manageable chunks
-        for batch in dataset.to_batches(batch_size=50000):
+        for batch in dataset.to_batches(batch_size=50_000):
             # Convert each batch to a pandas DataFrame
             df = batch.to_pandas()
+
+            # Create empty table (all TEXT) on first batch — avoids SQLAlchemy engine entirely
+            if not created_table:
+                cols_sql = ", ".join([f'"{c}" TEXT' for c in df.columns])
+                hook.run(f'CREATE TABLE {STG_SCHEMA}.{STG_TABLE} ({cols_sql});')
+                created_table = True
+
             # Convert to CSV in-memory
             buf = StringIO()
             # Write the DataFrame to the buffer
@@ -43,11 +53,15 @@ def ingest_to_postgres(**context):
             buf.seek(0)
             # COPY into Postgres (much faster than INSERTs)
             hook.copy_expert(
-                sql=f"COPY {STG_SCHEMA}.{STG_TABLE} FROM STDIN WITH CSV HEADER",
-                filename_or_file=buf
+                sql=f"COPY {STG_SCHEMA}.{STG_TABLE} FROM STDIN WITH (FORMAT CSV, HEADER TRUE)",
+                filename=buf,
             )
 
-        context['ti'].log.info(f"✅ Loaded {len(df):,} rows from {path.name}")
+            table_rows += len(df)
+
+        context['ti'].log.info(f"✅ Loaded {table_rows:,} rows from {path.name}")
+
+    context['ti'].log.info(f"✅ Total rows loaded: {table_rows:,}")
 
 with DAG(
     dag_id="nyc_taxi_pipeline",

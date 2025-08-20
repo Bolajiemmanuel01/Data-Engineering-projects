@@ -19,18 +19,34 @@ services:
       AIRFLOW__LOGGING__LOG_LEVEL: INFO
       AIRFLOW__SCHEDULER__FILE_PROCESSOR_PROCESS_TIMEOUT: "120"
       AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: "300"
+      AIRFLOW_CONN_CRYPTO_DB: postgresql://postgres:postgres@postgres:5432/crypto
+      CRYPTO_COINS: bitcoin,ethereum,solana,binancecoin
+      VS_CURRENCY: usd
+      # dbt env for the BashOperator (matches profiles.yml in the starter)
+      DBT_HOST: postgres
+      DBT_PORT: 5432
+      DBT_DB: crypto
+      DBT_USER: postgres
+      DBT_PASSWORD: postgres
+      # ensure the needed libs are installed in the Airflow image at start
       _PIP_ADDITIONAL_REQUIREMENTS: |
         pandas
         openpyxl
         psycopg2-binary
         apache-airflow-providers-postgres
         pyarrow
+        requests
+        dbt-core==1.7.12
+        dbt-postgres==1.7.12
+        great_expectations==0.18.12
     volumes:
       - ./online-retail-etl:/opt/airflow/dags/online-retail-etl
       - ./nyc-taxi-etl:/opt/airflow/dags/nyc-taxi-etl
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+      - ./crypto-price-pipeline/airflow/dags:/opt/airflow/dags/crypto-price-pipeline
+      - ./crypto-price-pipeline/dbt:/opt/airflow/dbt
     ports:
       - "8080:8080"
     depends_on:

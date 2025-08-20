@@ -1,0 +1,17 @@
+name: 'crypto_prices'
+version: '1.0'
+profile: 'crypto_profile'
+
+models:
+  crypto_prices:
+    +materialized: view
+    staging:
+      +schema: 'silver'
+      +materialized: view
+    marts:
+      +schema: 'gold'
+      +materialized: table
+
+seeds:
+  crypto_prices:
+    +schema: 'silver'
