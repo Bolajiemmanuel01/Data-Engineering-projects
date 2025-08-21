@@ -1,5 +1,7 @@
 # Crypto Price Pipeline — Airflow + dbt + Postgres
 
+[![Publish dbt docs](https://github.com/Bolajiemmanuel01/Data-Engineering-projects/actions/workflows/publish-docs.yml/badge.svg)](https://github.com/Bolajajoemmanuel01/Data-Engineering-projects/actions/workflows/publish-docs.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Airflow](https://img.shields.io/badge/Airflow-2.x-blue)
 ![dbt](https://img.shields.io/badge/dbt-1.7.x-orange)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13%2B-blue)
