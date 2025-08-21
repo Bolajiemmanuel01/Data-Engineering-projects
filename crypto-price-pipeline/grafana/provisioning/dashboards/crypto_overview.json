@@ -1,0 +1,81 @@
+{
+  "id": null,
+  "uid": "crypto-overview",
+  "title": "Crypto Overview",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "style": "dark",
+  "editable": true,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Daily Avg Price by Coin",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
+      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroupAlias(day, '1d') AS time,\n  coin_id,\n  AVG(avg_price) AS value\nFROM public_gold.vw_crypto_daily\nWHERE $__timeFilter(day)\nGROUP BY 1, coin_id\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "stat",
+      "title": "Last BTC Price",
+      "gridPos": {"x": 0, "y": 10, "w": 8, "h": 6},
+      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "targets": [
+        {
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'bitcoin'\nORDER BY day DESC\nLIMIT 1;",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "type": "stat",
+      "title": "Last ETH Price",
+      "gridPos": {"x": 8, "y": 10, "w": 8, "h": 6},
+      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "targets": [
+        {
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'ethereum'\nORDER BY day DESC\nLIMIT 1;",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "type": "stat",
+      "title": "Last SOL Price",
+      "gridPos": {"x": 16, "y": 10, "w": 8, "h": 6},
+      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "targets": [
+        {
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'solana'\nORDER BY day DESC\nLIMIT 1;",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "coin",
+        "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+        "query": "SELECT DISTINCT coin_id AS __value, coin_id AS __text FROM public_gold.vw_crypto_daily ORDER BY 1",
+        "refresh": 2
+      }
+    ]
+  },
+  "time": {"from": "now-30d", "to": "now"}
+}

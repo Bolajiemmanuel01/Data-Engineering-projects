@@ -10,6 +10,6 @@ datasources:
     secureJsonData:
       password: postgres
     jsonData:
-      sslmode: "disable"
+      sslmode: disable
       postgresVersion: 1300
       timescaledb: false
