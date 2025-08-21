@@ -4,49 +4,131 @@ name: dbt CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+    paths:
+      - "online-retail-etl/**"
+      - "crypto-price-pipeline/**"
+      - ".github/workflows/dbt-ci.yml"
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
+
+permissions:
+  contents: read
 
 jobs:
-  dbt:
+  build:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+    env:
+      # Project dirs (adjust if yours differ)
+      ONLINE_DBT_DIR: online-retail-etl/online_retail_dbt
+      CRYPTO_DBT_DIR: crypto-price-pipeline/dbt/crypto_prices
+
+      # DB creds used for CI
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+      DBT_DB: crypto
+      DBT_USER: postgres
+      DBT_PASSWORD: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create database
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -p 5432 -c "CREATE DATABASE crypto;"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dbt
         run: |
-          python -m venv venv                    # isolate packages
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install dbt-core dbt-postgres     # dbt CLI + Postgres adapter
+          python -m pip install --upgrade pip
+          pip install "dbt-core==1.7.12" "dbt-postgres==1.7.12"
 
-      - name: Run dbt parse (syntax check)
+      - name: Write shared dbt profiles
         run: |
-          source venv/bin/activate
-          dbt parse                             # lints models
+          mkdir -p .github/dbt-profiles
+          cat > .github/dbt-profiles/profiles.yml <<'YAML'
+          online_retail_dbt:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: "{{ env_var('DBT_HOST', 'localhost') }}"
+                port: "{{ env_var('DBT_PORT', '5432') | int }}"
+                user: "{{ env_var('DBT_USER', 'postgres') }}"
+                password: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
+                dbname: "{{ env_var('DBT_DB', 'crypto') }}"
+                schema: public
 
-      - name: Build & test dbt models
-        run: |
-          source venv/bin/activate
-          dbt deps                              # install any packages
-          dbt run                               # builds staging, dims, fact
-          dbt test                              # runs all tests
+          crypto_profile:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: "{{ env_var('DBT_HOST', 'localhost') }}"
+                port: "{{ env_var('DBT_PORT', '5432') | int }}"
+                user: "{{ env_var('DBT_USER', 'postgres') }}"
+                password: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
+                dbname: "{{ env_var('DBT_DB', 'crypto') }}"
+                schema: public
+          YAML
 
-      - name: Upload dbt docs artifact
-        if: success()
+      # ---------- Online Retail ----------
+      - name: dbt build (Online Retail)
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.ONLINE_DBT_DIR)) != '' }}
+        working-directory: ${{ env.ONLINE_DBT_DIR }}
         run: |
-          source venv/bin/activate
-          dbt docs generate                   # produce documentation artifacts
-          tar -czf docs.tar.gz target/docs    # package for deployment
-        uses: actions/upload-artifact@v3
+          dbt deps --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt seed --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt build --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+
+      - name: Generate docs (Online Retail)
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.ONLINE_DBT_DIR)) != '' }}
+        working-directory: ${{ env.ONLINE_DBT_DIR }}
+        run: |
+          dbt docs generate --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          mkdir -p $GITHUB_WORKSPACE/ci-docs/online-retail-etl
+          cp -r target/* $GITHUB_WORKSPACE/ci-docs/online-retail-etl/
+
+      # ---------- Crypto Price Pipeline ----------
+      - name: dbt build (Crypto)
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.CRYPTO_DBT_DIR)) != '' }}
+        working-directory: ${{ env.CRYPTO_DBT_DIR }}
+        run: |
+          dbt deps --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt seed --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt build --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+
+      - name: Generate docs (Crypto)
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.CRYPTO_DBT_DIR)) != '' }}
+        working-directory: ${{ env.CRYPTO_DBT_DIR }}
+        run: |
+          dbt docs generate --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          mkdir -p $GITHUB_WORKSPACE/ci-docs/crypto-price-pipeline
+          cp -r target/* $GITHUB_WORKSPACE/ci-docs/crypto-price-pipeline/
+
+      - name: Upload combined docs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: dbt-docs
-          path: docs.tar.gz
+          path: ci-docs
