@@ -1,0 +1,12 @@
+
+    
+    
+    truncate table "crypto"."public_silver"."coins";
+    -- dbt seed --
+    
+          insert into "crypto"."public_silver"."coins" ("id", "symbol", "name") values
+          (%s,%s,%s),(%s,%s,%s),(%s,%s,%s),(%s,%s,%s)
+      
+
+;
+  
