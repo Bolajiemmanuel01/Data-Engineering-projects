@@ -1,0 +1,104 @@
+name: Publish dbt docs (multi-project)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "online-retail-etl/**"
+      - "crypto-price-pipeline/**"
+      - ".github/workflows/publish-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    # Spin up Postgres so `dbt docs generate` can build a catalog
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      # 👇 Update these if your dbt project folders differ
+      ONLINE_DBT_DIR: online-retail-etl/online_retail_dbt
+      CRYPTO_DBT_DIR: crypto-price-pipeline/dbt/crypto_prices
+
+      # DB creds used only for docs generation
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+      DBT_DB: crypto
+      DBT_USER: postgres
+      DBT_PASSWORD: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create DB for docs generation
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -p 5432 -c "CREATE DATABASE crypto;"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install "dbt-core==1.7.12" "dbt-postgres==1.7.12"
+
+      # ---- Build Online Retail docs (if the project exists) ----
+      - name: Build Online Retail docs
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.ONLINE_DBT_DIR)) != '' }}
+        working-directory: ${{ env.ONLINE_DBT_DIR }}
+        env:
+          DBT_HOST: ${{ env.DBT_HOST }}
+          DBT_PORT: ${{ env.DBT_PORT }}
+          DBT_DB: ${{ env.DBT_DB }}
+          DBT_USER: ${{ env.DBT_USER }}
+          DBT_PASSWORD: ${{ env.DBT_PASSWORD }}
+        run: |
+          dbt deps --profiles-dir .
+          dbt compile --profiles-dir .
+          dbt docs generate --profiles-dir .
+          mkdir -p "$GITHUB_WORKSPACE/site/online-retail-etl"
+          if [ -d target/docs ]; then cp -r target/docs/* "$GITHUB_WORKSPACE/site/online-retail-etl/"; else cp -r target/* "$GITHUB_WORKSPACE/site/online-retail-etl/"; fi
+
+      # ---- Build Crypto docs (if the project exists) ----
+      - name: Build Crypto docs
+        if: ${{ hashFiles(format('{0}/dbt_project.yml', env.CRYPTO_DBT_DIR)) != '' }}
+        working-directory: ${{ env.CRYPTO_DBT_DIR }}
+        env:
+          DBT_HOST: ${{ env.DBT_HOST }}
+          DBT_PORT: ${{ env.DBT_PORT }}
+          DBT_DB: ${{ env.DBT_DB }}
+          DBT_USER: ${{ env.DBT_USER }}
+          DBT_PASSWORD: ${{ env.DBT_PASSWORD }}
+        run: |
+          dbt deps --profiles-dir .
+          dbt compile --profiles-dir .
+          dbt docs generate --profiles-dir .
+          mkdir -p "$GITHUB_WORKSPACE/site/crypto-price-pipeline"
+          if [ -d target/docs ]; then cp -r target/docs/* "$GITHUB_WORKSPACE/site/crypto-price-pipeline/"; else cp -r target/* "$GITHUB_WORKSPACE/site/crypto-price-pipeline/"; fi
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
+          publish_branch: gh-pages
+          keep_files: true
