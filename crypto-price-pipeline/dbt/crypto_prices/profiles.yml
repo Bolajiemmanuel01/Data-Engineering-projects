@@ -3,9 +3,9 @@ crypto_profile:
   outputs:
     dev:
       type: postgres
-      host: "{{ env_var('DBT_HOST') }}"
-      user: "{{ env_var('DBT_USER') }}"
-      password: "{{ env_var('DBT_PASSWORD') }}"
+      host: "{{ env_var('DBT_HOST', 'postgres') }}"
+      user: "{{ env_var('DBT_USER', 'postgres') }}"
+      password: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
       port: "{{ env_var('DBT_PORT', '5432') | int }}"
       dbname: "{{ env_var('DBT_DB', 'crypto') }}"
       schema: public
