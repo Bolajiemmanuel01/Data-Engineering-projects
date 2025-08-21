@@ -2,80 +2,103 @@
   "id": null,
   "uid": "crypto-overview",
   "title": "Crypto Overview",
-  "timezone": "browser",
   "schemaVersion": 38,
   "version": 1,
-  "style": "dark",
   "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-90d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "coin",
+        "label": "Coin",
+        "type": "query",
+        "hide": 0,
+        "multi": true,
+        "includeAll": true,
+        "allValue": null,
+        "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
+        "query": "SELECT DISTINCT coin_id AS __value, coin_id AS __text\nFROM public_gold.vw_crypto_daily\nORDER BY 1;",
+        "refresh": 2,
+        "current": { "text": "All", "value": "__all" }
+      }
+    ]
+  },
   "panels": [
     {
       "type": "timeseries",
       "title": "Daily Avg Price by Coin",
-      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
-      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 10 },
+      "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
       "targets": [
         {
+          "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroupAlias(day, '1d') AS time,\n  coin_id,\n  AVG(avg_price) AS value\nFROM public_gold.vw_crypto_daily\nWHERE $__timeFilter(day)\nGROUP BY 1, coin_id\nORDER BY 1;",
-          "refId": "A"
+          "rawSql": "SELECT\n  date_trunc('day', day::timestamp) AS \"time\",\n  coin_id,\n  AVG(avg_price) AS value\nFROM public_gold.vw_crypto_daily\nWHERE day BETWEEN $__timeFrom()::date AND $__timeTo()::date\n  AND (\n    CASE WHEN '${coin:raw}' IN ('', '__all') THEN true\n         ELSE coin_id IN (${coin:singlequote})\n    END\n  )\nGROUP BY 1, 2\nORDER BY 1;"
         }
       ],
-      "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
     },
     {
       "type": "stat",
       "title": "Last BTC Price",
-      "gridPos": {"x": 0, "y": 10, "w": 8, "h": 6},
-      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "gridPos": { "x": 0, "y": 10, "w": 8, "h": 6 },
+      "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
       "targets": [
         {
-          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'bitcoin'\nORDER BY day DESC\nLIMIT 1;",
           "refId": "A",
-          "format": "table"
+          "format": "table",
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'bitcoin'\nORDER BY day DESC\nLIMIT 1;"
         }
       ],
-      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": { "reduceOptions": { "calcs": [ "lastNotNull" ] } }
     },
     {
       "type": "stat",
       "title": "Last ETH Price",
-      "gridPos": {"x": 8, "y": 10, "w": 8, "h": 6},
-      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "gridPos": { "x": 8, "y": 10, "w": 8, "h": 6 },
+      "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
       "targets": [
         {
-          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'ethereum'\nORDER BY day DESC\nLIMIT 1;",
           "refId": "A",
-          "format": "table"
+          "format": "table",
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'ethereum'\nORDER BY day DESC\nLIMIT 1;"
         }
       ],
-      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": { "reduceOptions": { "calcs": [ "lastNotNull" ] } }
     },
     {
       "type": "stat",
       "title": "Last SOL Price",
-      "gridPos": {"x": 16, "y": 10, "w": 8, "h": 6},
-      "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
+      "gridPos": { "x": 16, "y": 10, "w": 8, "h": 6 },
+      "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
       "targets": [
         {
-          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'solana'\nORDER BY day DESC\nLIMIT 1;",
           "refId": "A",
-          "format": "table"
+          "format": "table",
+          "rawSql": "SELECT avg_price AS value\nFROM public_gold.vw_crypto_daily\nWHERE coin_id = 'solana'\nORDER BY day DESC\nLIMIT 1;"
         }
       ],
-      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": { "reduceOptions": { "calcs": [ "lastNotNull" ] } }
+    },
+    {
+      "type": "table",
+      "title": "Latest Daily Rows (debug)",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "name": "Postgres (crypto)" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT day, coin_id, vs_currency, avg_price, min_price, max_price\nFROM public_gold.vw_crypto_daily\nWHERE day BETWEEN $__timeFrom()::date AND $__timeTo()::date\n  AND (\n    CASE WHEN '${coin:raw}' IN ('', '__all') THEN true\n         ELSE coin_id IN (${coin:singlequote})\n    END\n  )\nORDER BY day DESC, coin_id\nLIMIT 50;"
+        }
+      ]
     }
-  ],
-  "templating": {
-    "list": [
-      {
-        "type": "query",
-        "name": "coin",
-        "datasource": {"type": "postgres", "uid": null, "name": "Postgres (crypto)"},
-        "query": "SELECT DISTINCT coin_id AS __value, coin_id AS __text FROM public_gold.vw_crypto_daily ORDER BY 1",
-        "refresh": 2
-      }
-    ]
-  },
-  "time": {"from": "now-30d", "to": "now"}
+  ]
 }
