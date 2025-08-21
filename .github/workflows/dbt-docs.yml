@@ -1,0 +1,78 @@
+name: dbt docs
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "crypto-price-pipeline/dbt/**"
+      - ".github/workflows/dbt-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create db
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -p 5432 -c "CREATE DATABASE crypto;"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install "dbt-core==1.7.12" "dbt-postgres==1.7.12"
+
+      - name: dbt deps / compile / docs generate
+        working-directory: crypto-price-pipeline/dbt/crypto_prices
+        env:
+          DBT_HOST: localhost
+          DBT_PORT: "5432"
+          DBT_DB: crypto
+          DBT_USER: postgres
+          DBT_PASSWORD: postgres
+        run: |
+          dbt deps --profiles-dir .
+          dbt compile --profiles-dir .
+          dbt docs generate --profiles-dir .
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: crypto-price-pipeline/dbt/crypto_prices/target
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
