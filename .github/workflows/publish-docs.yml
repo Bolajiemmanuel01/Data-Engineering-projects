@@ -16,7 +16,6 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
-    # Spin up Postgres so `dbt docs generate` can build a catalog
     services:
       postgres:
         image: postgres:13
@@ -31,11 +30,11 @@ jobs:
           --health-retries=5
 
     env:
-      # 👇 Update these if your dbt project folders differ
+      # Adjust these if your folders differ
       ONLINE_DBT_DIR: online-retail-etl/online_retail_dbt
       CRYPTO_DBT_DIR: crypto-price-pipeline/dbt/crypto_prices
 
-      # DB creds used only for docs generation
+      # Connection used only to build docs
       DBT_HOST: localhost
       DBT_PORT: "5432"
       DBT_DB: crypto
@@ -61,7 +60,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install "dbt-core==1.7.12" "dbt-postgres==1.7.12"
 
-      # ---- Build Online Retail docs (if the project exists) ----
+      # 🔑 Create a shared profiles.yml with BOTH profiles
+      - name: Write dbt profiles
+        run: |
+          mkdir -p .github/dbt-profiles
+          cat > .github/dbt-profiles/profiles.yml <<'YAML'
+          online_retail_dbt:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: "{{ env_var('DBT_HOST', 'localhost') }}"
+                port: "{{ env_var('DBT_PORT', '5432') | int }}"
+                user: "{{ env_var('DBT_USER', 'postgres') }}"
+                password: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
+                dbname: "{{ env_var('DBT_DB', 'crypto') }}"
+                schema: public
+
+          crypto_profile:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: "{{ env_var('DBT_HOST', 'localhost') }}"
+                port: "{{ env_var('DBT_PORT', '5432') | int }}"
+                user: "{{ env_var('DBT_USER', 'postgres') }}"
+                password: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
+                dbname: "{{ env_var('DBT_DB', 'crypto') }}"
+                schema: public
+          YAML
+
+      # ---- Online Retail docs (if project exists) ----
       - name: Build Online Retail docs
         if: ${{ hashFiles(format('{0}/dbt_project.yml', env.ONLINE_DBT_DIR)) != '' }}
         working-directory: ${{ env.ONLINE_DBT_DIR }}
@@ -72,13 +101,13 @@ jobs:
           DBT_USER: ${{ env.DBT_USER }}
           DBT_PASSWORD: ${{ env.DBT_PASSWORD }}
         run: |
-          dbt deps --profiles-dir .
-          dbt compile --profiles-dir .
-          dbt docs generate --profiles-dir .
+          dbt deps --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt compile --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt docs generate --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
           mkdir -p "$GITHUB_WORKSPACE/site/online-retail-etl"
           if [ -d target/docs ]; then cp -r target/docs/* "$GITHUB_WORKSPACE/site/online-retail-etl/"; else cp -r target/* "$GITHUB_WORKSPACE/site/online-retail-etl/"; fi
 
-      # ---- Build Crypto docs (if the project exists) ----
+      # ---- Crypto docs (if project exists) ----
       - name: Build Crypto docs
         if: ${{ hashFiles(format('{0}/dbt_project.yml', env.CRYPTO_DBT_DIR)) != '' }}
         working-directory: ${{ env.CRYPTO_DBT_DIR }}
@@ -89,9 +118,9 @@ jobs:
           DBT_USER: ${{ env.DBT_USER }}
           DBT_PASSWORD: ${{ env.DBT_PASSWORD }}
         run: |
-          dbt deps --profiles-dir .
-          dbt compile --profiles-dir .
-          dbt docs generate --profiles-dir .
+          dbt deps --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt compile --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
+          dbt docs generate --profiles-dir $GITHUB_WORKSPACE/.github/dbt-profiles
           mkdir -p "$GITHUB_WORKSPACE/site/crypto-price-pipeline"
           if [ -d target/docs ]; then cp -r target/docs/* "$GITHUB_WORKSPACE/site/crypto-price-pipeline/"; else cp -r target/* "$GITHUB_WORKSPACE/site/crypto-price-pipeline/"; fi
 
