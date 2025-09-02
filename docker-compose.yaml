@@ -59,6 +59,8 @@ services:
       - ./plugins:/opt/airflow/plugins
       - ./crypto-price-pipeline/airflow/dags:/opt/airflow/dags/crypto-price-pipeline
       - ./crypto-price-pipeline/dbt:/opt/airflow/dbt
+      - ./earthquakes-rt/airflow/dags:/opt/airflow/dags/earthquakes-rt
+      - ./earthquakes-rt/data:/opt/airflow/data
     ports:
       - "8080:8080"
     depends_on:
