@@ -4,66 +4,103 @@ Welcome to the Data Engineering Projects repository! This repository contains a 
 
 ## Repository Structure
 
+
+
+
 ```
 Data-Engineering-projects/
 │
-├── crypto-price-pipeline/         # Project: Crypto Price Data Pipeline
-│   ├── airflow/                   # Airflow DAGs and configs
-│   ├── db/                        # Database scripts and SQL
-│   ├── dbt/                       # dbt transformation project
-│   ├── grafana/                   # Grafana provisioning for dashboards
-│   └── viz/                       # PowerBI and other visualization assets
+├── crypto-price-pipeline/        # End-to-end crypto data workflows and assets
+│   ├── airflow/                  # Airflow DAGs for orchestration
+│   ├── db/                       # Database scripts and SQL
+│   ├── dbt/                      # dbt models for transformation
+│   ├── grafana/                  # Grafana dashboard provisioning
+│   ├── viz/                      # PowerBI and other visualization files
+│   ├── LICENSE                   # Project license
+│   └── README.md                 # Project documentation
 │
-├── dags/                          # Additional DAGs for various projects
-│   ├── crypto-price-pipeline/
-│   ├── nyc-taxi-etl/
-│   └── online-retail-etl/
+├── dags/                        # Centralized DAGs for all projects
+│   ├── crypto-price-pipeline/    # DAGs for crypto project
+│   ├── nyc-taxi-etl/            # DAGs for NYC taxi project
+│   └── online-retail-etl/       # DAGs for online retail project
 │
-├── docs/                          # Documentation and dbt docs for each project
+├── docs/                        # dbt and project documentation
+│   ├── crypto-price-pipeline/    # dbt docs for crypto project
+│   └── online-retail-etl/       # dbt docs for online retail project
 │
-├── logs/                          # Airflow and pipeline logs
+├── earthquakes-rt/   # In Development
+│   ├── airflow/                  # Airflow DAGs
+│   ├── db/                       # Database scripts
+│   ├── docker/                   # Docker setup
+│   ├── spark/                    # Spark jobs
+│   ├── .env.example              # Environment variable example
+│   └── README.md                 # Project documentation
 │
-├── nyc-taxi-etl/                  # Project: NYC Taxi Data ETL
-│   ├── dags/
-│   ├── data/
-│   └── README.md
+├── logs/                        # Pipeline and Airflow logs
+│   ├── dag_id=crypto_price_pipeline/   # Logs for crypto pipeline runs
+│   ├── dag_id=nyc_taxi_pipeline/       # Logs for NYC taxi pipeline runs
+│   ├── dag_id=online_retail_ingest/    # Logs for online retail pipeline runs
+│   ├── dag_processor_manager/          # Airflow DAG processor logs
+│   └── scheduler/                      # Airflow scheduler logs
 │
-├── online-retail-etl/             # Project: Online Retail Data ETL
-│   ├── dags/
-│   ├── data/
-│   ├── logs/
-│   ├── scripts/
-│   └── online_retail_dbt/
+├── nyc-taxi-etl/                # NYC taxi ETL project
+│   ├── dags/                     # Project-specific DAGs
+│   ├── data/                     # Raw and processed data
+│   ├── link.txt                  # Data source links/info
+│   └── README.md                 # Project documentation
 │
-├── plugins/                       # Custom Airflow plugins (if any)
+├── online-retail-etl/           # Online retail ETL project
+│   ├── dags/                     # Project-specific DAGs
+│   ├── data/                     # Raw and processed data
+│   ├── logs/                     # Project logs
+│   ├── online_retail_dbt/        # dbt models
+│   ├── scripts/                  # ETL scripts
+│   ├── requirements.txt          # Python dependencies
+│   ├── docker-compose.yaml       # Project-specific Docker Compose
+│   └── README.md                 # Project documentation
 │
-├── docker-compose.yaml            # Main Docker Compose file for orchestration
-└── README.md                      # This file
+├── plugins/                     # Custom Airflow plugins (currently empty)
+│
+├── docker-compose.yaml          # Main Docker Compose for all services
+├── README.md                    # Repository documentation
+└── venv/                        # Python virtual environment
 ```
 
-## Projects Overview
 
-### 1. Crypto Price Pipeline
+
+## Projects Overview
+---
+
+### crypto-price-pipeline
 - **Goal:** Ingest, transform, and visualize cryptocurrency price data.
 - **Tech Stack:** Airflow, dbt, PostgreSQL, Grafana, PowerBI
 - **Features:**
-  - Automated data ingestion with Airflow
-  - Data transformation with dbt
-  - Analytics and dashboards with Grafana and PowerBI
+	- Automated data ingestion with Airflow
+	- Data transformation with dbt
+	- Analytics and dashboards with Grafana and PowerBI
 
-### 2. NYC Taxi ETL
+### nyc-taxi-etl
 - **Goal:** ETL pipeline for NYC Taxi trip data.
 - **Tech Stack:** Airflow, Python, SQL
 - **Features:**
-  - Data extraction, cleaning, and loading
-  - Modular DAGs for batch processing
+	- Data extraction, cleaning, and loading
+	- Modular DAGs for batch processing
 
-### 3. Online Retail ETL
+### online-retail-etl
 - **Goal:** ETL and analytics for online retail datasets.
 - **Tech Stack:** Airflow, dbt, Python
 - **Features:**
-  - Data ingestion and transformation
-  - dbt models for analytics
+	- Data ingestion and transformation
+	- dbt models for analytics
+
+### earthquakes-rt (In Development)
+- **Goal:** Build a real-time data pipeline for earthquake events, including ingestion, processing, and analytics.
+- **Tech Stack:** Airflow, Spark, Docker, SQL
+- **Features:**
+	- Real-time data ingestion (planned)
+	- Distributed processing with Spark (planned)
+	- Analytics and reporting (planned)
+	- 🚧 *This project is currently in development. Features and documentation will be updated as progress is made.*
 
 ## Getting Started
 
