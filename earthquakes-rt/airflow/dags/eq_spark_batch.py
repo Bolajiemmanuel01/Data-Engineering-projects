@@ -42,8 +42,8 @@ default_args = {
 
 with DAG(
     dag_id="eq_poll_usgs",
-    start_date=pendulum.datetime(2025, 9, 2, tz="UTC"),
-    schedule=f"*/{POLL_INTERVAL_MIN} * * * *",
+    start_date=pendulum.datetime(2025, 9, 20, tz="UTC"),
+    schedule=f"*/{POLL_INTERVAL_MIN} * * * *", # CRON Job
     catchup=False,
     default_args=default_args,
     tags=["earthquakes","bronze","usgs"],
