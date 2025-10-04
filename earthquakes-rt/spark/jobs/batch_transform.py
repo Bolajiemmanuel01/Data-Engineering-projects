@@ -116,30 +116,40 @@ def main():
     spark = build_spark()
     spark.sparkContext.setLogLevel("WARN")
 
-    # Read all JSON files landed during the current hour into bronze partition
-    bronze_hour_path = f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}"
+    # Candidate hour partitions to try (current hour, then previous hour)
+    candidates = [
+        f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}",
+        f"/opt/data/bronze/dt={(now):%Y-%m-%d}/HH={(now.hour-1)%24:02d}"
+    ]
 
-    # If the path has no files yet, exit gracefully (so Airflow doesn't mark the task failed)
-    try:
-        df_raw = spark.read.schema(schema_geojson()).json(bronze_hour_path)
-    except Exception:
-        # No input yet – nothing to do this run
+    import glob, os
+    json_files = []
+    real_base = None
+    for base in candidates:
+        files = glob.glob(os.path.join(base, "*.json"))
+        if files:
+            json_files = files
+            real_base = base
+            break
+
+    if not json_files:
+        # Nothing to process this run; exit gracefully
         spark.stop()
         return
 
-    if df_raw.rdd.isEmpty():
-        spark.stop()
-        return
-
+    # Read only the files we found (avoids the “Spark saw a file that vanished” issue)
+    df_raw = spark.read.schema(schema_geojson()).json(json_files)
     flat = flatten(df_raw)
 
-    # Write silver (partitioned by current hour)
+    # Use the directory we actually read from to decide silver partition
+    # If you prefer “current hour only”, keep silver_path(now)
     write_silver(flat, silver_path(now))
 
-    # Write staging snapshot to Postgres
+    # Stage to Postgres for UPSERT in Airflow
     write_staging_postgres(flat, env)
 
     spark.stop()
+
 
 if __name__ == "__main__":
     main()

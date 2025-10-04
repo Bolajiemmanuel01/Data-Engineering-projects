@@ -79,6 +79,7 @@ with DAG(
         auto_remove=True,
         docker_url="unix://var/run/docker.sock",
         network_mode="data-engineering-projects_default",
+        mount_tmp_dir=False,
         # network_mode optional; default works since we talk to spark-master by name (same Docker network)
         command=[
             "/opt/spark/bin/spark-submit",
