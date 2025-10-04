@@ -70,13 +70,11 @@ def flatten(df):
     }).drop("time_ms","updated_ms")
 
     # Deduplicate by event_id, prefer the most recently updated record (handles USGS post-corrections)
-    win = Window(F.col("event_time_utc"), "1 day")  # not used directly, but illustrating alternative
-    # Simple dedup using updated_utc:
+    # Deduplicate per event_id, keep the most recently updated record
+    w = Window.partitionBy("event_id").orderBy(F.col("updated_utc").desc_nulls_last())
     out = (out
-           .withColumn("rn", F.row_number().over(
-               Window.partitionBy("event_id").orderBy(F.col("updated_utc").desc_nulls_last())
-           ))
-           .where("rn = 1")
+           .withColumn("rn", F.row_number().over(w))
+           .where(F.col("rn") == 1)
            .drop("rn"))
 
     return out
