@@ -13,7 +13,7 @@ import psycopg2
 
 # --------- CONFIG YOU MAY EDIT ----------
 # Your repo root on Windows (ABSOLUTE path, no trailing slash)
-REPO = r"ABS_PATH_TO_REPO"  # e.g. r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"
+REPO = r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"  # e.g. r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"
 
 SPARK_DIR = rf"{REPO}\earthquakes-rt\spark"
 DATA_DIR  = rf"{REPO}\earthquakes-rt\data"
