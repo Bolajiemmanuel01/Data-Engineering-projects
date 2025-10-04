@@ -4,6 +4,7 @@
 # Run with:
 # spark-submit --master spark://spark-master:7077 /opt/spark-apps/jobs/batch_transform.py
 
+import os, glob
 from pyspark.sql import SparkSession, functions as F, types as T
 from pyspark.sql.window import Window
 from datetime import datetime
@@ -15,6 +16,8 @@ def build_spark():
         SparkSession.builder
         .appName("earthquakes-batch-transform")
         .config("spark.sql.session.timeZone", "UTC")
+        .config("spark.sql.files.ignoreMissingFiles", "true")
+        .config("spark.sql.files.ignoreCorruptFiles", "true")
         .getOrCreate()
     )
 
@@ -115,13 +118,13 @@ def main():
     spark = build_spark()
     spark.sparkContext.setLogLevel("WARN")
 
-    # Candidate hour partitions to try (current hour, then previous hour)
-    candidates = [
-        f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}",
-        f"/opt/data/bronze/dt={(now):%Y-%m-%d}/HH={(now.hour-1)%24:02d}"
-    ]
+    # Candidate hour partitions: current hour, then previous hour
+    current_base  = f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}"
+    prev_hour     = (now.replace(minute=0, second=0, microsecond=0))
+    prev_base     = f"/opt/data/bronze/dt={prev_hour:%Y-%m-%d}/HH={(prev_hour.hour-1)%24:02d}"
 
-    import glob, os
+    candidates = [current_base, prev_base]
+
     json_files = []
     real_base = None
     for base in candidates:
@@ -133,8 +136,15 @@ def main():
 
     if not json_files:
         # Nothing to process this run; exit gracefully
+        print(f"[INFO] No JSON files found in {candidates}. Nothing to process.")
         spark.stop()
         return
+
+    print(f"[INFO] Reading {len(json_files)} files from {real_base}:")
+    for f in json_files[:5]:
+        print(f"  - {os.path.basename(f)}")
+    if len(json_files) > 5:
+        print(f"  ... and {len(json_files)-5} more")
 
     # Read only the files we found (avoids the “Spark saw a file that vanished” issue)
     df_raw = spark.read.schema(schema_geojson()).json(json_files)
