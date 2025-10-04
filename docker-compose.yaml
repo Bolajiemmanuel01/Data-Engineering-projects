@@ -67,6 +67,7 @@ services:
       - ./crypto-price-pipeline/dbt:/opt/airflow/dbt
       - ./earthquakes-rt/airflow/dags:/opt/airflow/dags/earthquakes-rt
       - ./earthquakes-rt/data:/opt/airflow/data
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8080:8080"
     depends_on:

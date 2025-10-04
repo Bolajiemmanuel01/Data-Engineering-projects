@@ -18,7 +18,7 @@ REPO = r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"  # e.g. r"C:\Use
 SPARK_DIR = rf"{REPO}\earthquakes-rt\spark"
 DATA_DIR  = rf"{REPO}\earthquakes-rt\data"
 JARS_DIR  = rf"{REPO}\earthquakes-rt\spark\jars"
-JDBC_JAR  = "/opt/spark-apps/jars/postgresql-42.7.3.jar"  # container path
+JDBC_JAR  = "earthquakes-rt/spark/jars/postgresql-42.7.3.jar"  # container path
 
 # Postgres (same container you already run)
 PG_HOST = os.getenv("PG_HOST", "postgres")
@@ -88,10 +88,10 @@ with DAG(
             "/opt/spark-apps/jobs/batch_transform.py",
         ],
         # Windows host paths -> container mounts
-        mounts=[
-            {"Source": SPARK_DIR, "Target": "/opt/spark-apps", "Type": "bind"},
-            {"Source": DATA_DIR,  "Target": "/opt/data",       "Type": "bind"},
-            {"Source": JARS_DIR,  "Target": "/opt/spark-apps/jars", "Type": "bind"},
+        volumes=[
+            rf"{SPARK_DIR}:/opt/spark-apps:rw",
+            rf"{DATA_DIR}:/opt/data:rw",
+            rf"{JARS_DIR}:/opt/spark-apps/jars:rw",
         ],
         # Make creds + paths available to the Spark job
         environment={
