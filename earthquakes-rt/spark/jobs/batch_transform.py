@@ -5,6 +5,7 @@
 # spark-submit --master spark://spark-master:7077 /opt/spark-apps/jobs/batch_transform.py
 
 from pyspark.sql import SparkSession, functions as F, types as T
+from pyspark.sql.window import Window
 from datetime import datetime
 from common import get_env, silver_path
 
@@ -69,11 +70,11 @@ def flatten(df):
     }).drop("time_ms","updated_ms")
 
     # Deduplicate by event_id, prefer the most recently updated record (handles USGS post-corrections)
-    win = F.window(F.col("event_time_utc"), "1 day")  # not used directly, but illustrating alternative
+    win = Window(F.col("event_time_utc"), "1 day")  # not used directly, but illustrating alternative
     # Simple dedup using updated_utc:
     out = (out
            .withColumn("rn", F.row_number().over(
-               F.Window.partitionBy("event_id").orderBy(F.col("updated_utc").desc_nulls_last())
+               Window.partitionBy("event_id").orderBy(F.col("updated_utc").desc_nulls_last())
            ))
            .where("rn = 1")
            .drop("rn"))
