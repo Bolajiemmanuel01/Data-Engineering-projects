@@ -2,32 +2,31 @@
 Run Spark batch to convert bronze -> silver and stage to Postgres,
 then UPSERT into gold table (earthquakes_latest).
 """
-
 import os
 import pendulum
 from datetime import timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.operators.python import PythonOperator
+from docker.types import Mount  # <-- NEW: use Mount objects
 import psycopg2
 
-# --------- CONFIG YOU MAY EDIT ----------
-# Your repo root on Windows (ABSOLUTE path, no trailing slash)
-REPO = r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"  # e.g. r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"
+# --------- EDIT THIS to your absolute repo path on Windows ----------
+# Example: r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"
+REPO = r"C:\Users\a\OneDrive\Desktop\Data-Engineering-projects"
 
 SPARK_DIR = rf"{REPO}\earthquakes-rt\spark"
 DATA_DIR  = rf"{REPO}\earthquakes-rt\data"
 JARS_DIR  = rf"{REPO}\earthquakes-rt\spark\jars"
-JDBC_JAR  = "earthquakes-rt/spark/jars/postgresql-42.7.3.jar"  # container path
+JDBC_JAR  = "/opt/spark-apps/jars/postgresql-42.7.3.jar"  # container path
 
-# Postgres (same container you already run)
+# Postgres settings
 PG_HOST = os.getenv("PG_HOST", "postgres")
 PG_PORT = int(os.getenv("PG_PORT", "5432"))
 PG_DB   = os.getenv("PG_DB", "earthquakes")
 PG_USER = os.getenv("PG_USER", "postgres")
 PG_PASS = os.getenv("PG_PASSWORD", "postgres")
 PG_SCHEMA = os.getenv("PG_SCHEMA", "public")
-# ----------------------------------------
 
 UPSERT_SQL = f"""
 INSERT INTO {PG_SCHEMA}.earthquakes_latest (
@@ -67,33 +66,31 @@ default_args = {
 with DAG(
     dag_id="eq_spark_batch",
     start_date=pendulum.datetime(2025, 10, 4, tz="UTC"),
-    schedule=None,  # trigger manually for MVP; change to "@hourly" later
+    schedule=None,  # trigger manually for MVP; make "@hourly" later
     catchup=False,
     default_args=default_args,
     tags=["earthquakes", "silver", "gold"],
 ) as dag:
 
-    # Spark job: bronze -> silver + stage to Postgres (eq_staging_latest)
     spark_batch = DockerOperator(
         task_id="spark_bronze_to_silver_and_stage",
         image="apache/spark:3.5.1",
         api_version="auto",
         auto_remove=True,
         docker_url="unix://var/run/docker.sock",
-        network_mode="bridge",
+        # network_mode optional; default works since we talk to spark-master by name (same Docker network)
         command=[
             "/opt/spark/bin/spark-submit",
             "--master", "spark://spark-master:7077",
             "--jars", JDBC_JAR,
             "/opt/spark-apps/jobs/batch_transform.py",
         ],
-        # Windows host paths -> container mounts
-        volumes=[
-            rf"{SPARK_DIR}:/opt/spark-apps:rw",
-            rf"{DATA_DIR}:/opt/data:rw",
-            rf"{JARS_DIR}:/opt/spark-apps/jars:rw",
+        # <-- CHANGED: use Mount objects instead of 'volumes'
+        mounts=[
+            Mount(target="/opt/spark-apps",     source=SPARK_DIR, type="bind", read_only=False),
+            Mount(target="/opt/data",           source=DATA_DIR,  type="bind", read_only=False),
+            Mount(target="/opt/spark-apps/jars",source=JARS_DIR,  type="bind", read_only=False),
         ],
-        # Make creds + paths available to the Spark job
         environment={
             "PG_HOST": PG_HOST,
             "PG_PORT": str(PG_PORT),
@@ -105,7 +102,6 @@ with DAG(
         },
     )
 
-    # UPSERT staged rows into gold table
     upsert_gold = PythonOperator(
         task_id="gold_upsert",
         python_callable=run_upsert,
