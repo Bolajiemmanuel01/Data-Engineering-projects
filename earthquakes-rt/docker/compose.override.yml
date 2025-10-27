@@ -7,8 +7,8 @@ services:
       - "7077:7077"
       - "8081:8080"     # Spark Master UI → http://localhost:8081
     volumes:
-      - ../spark:/opt/spark-apps
-      - ../data:/opt/data
+      - "C:\\Users\\a\\OneDrive\\Desktop\\Data-Engineering-projects\\earthquakes-rt\\spark:/opt/spark-apps"
+      - "C:\\Users\\a\\OneDrive\\Desktop\\Data-Engineering-projects\\earthquakes-rt\\data:/opt/data"
 
   spark-worker:
     image: apache/spark:3.5.1
@@ -20,5 +20,5 @@ services:
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=2g
     volumes:
-      - ../spark:/opt/spark-apps
-      - ../data:/opt/data
+      - "C:\\Users\\a\\OneDrive\\Desktop\\Data-Engineering-projects\\earthquakes-rt\\spark:/opt/spark-apps"
+      - "C:\\Users\\a\\OneDrive\\Desktop\\Data-Engineering-projects\\earthquakes-rt\\data:/opt/data"
