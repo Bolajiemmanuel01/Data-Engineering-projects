@@ -7,7 +7,7 @@
 import os, glob, argparse
 from pyspark.sql import SparkSession, functions as F, types as T
 from pyspark.sql.window import Window
-from datetime import datetime
+from datetime import datetime, timedelta
 from common import get_env, silver_path
 
 def build_spark():

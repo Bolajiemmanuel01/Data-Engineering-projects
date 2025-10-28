@@ -66,7 +66,7 @@ default_args = {
 with DAG(
     dag_id="eq_spark_batch",
     start_date=pendulum.datetime(2025, 10, 4, tz="UTC"),
-    schedule=None,  # trigger manually for MVP; make "@hourly" later
+    schedule="@hourly",  # trigger manually for MVP; make "@hourly" later
     catchup=False,
     default_args=default_args,
     tags=["earthquakes", "silver", "gold"],
