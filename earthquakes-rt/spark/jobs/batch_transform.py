@@ -4,7 +4,7 @@
 # Run with:
 # spark-submit --master spark://spark-master:7077 /opt/spark-apps/jobs/batch_transform.py
 
-import os, glob
+import os, glob, argparse
 from pyspark.sql import SparkSession, functions as F, types as T
 from pyspark.sql.window import Window
 from datetime import datetime
@@ -112,35 +112,56 @@ def write_staging_postgres(df, env):
         .option("truncate", "true")
         .jdbc(jdbc_url, f"{env['PG_SCHEMA']}.eq_staging_latest", properties=props))
 
-def main():
-    env = get_env()
+
+def resolve_input_partitions(date_arg: str, hour_arg: str):
+    """
+    Decide which bronze folders to read.
+    If --date/--hour are provided, use exactly that partition.
+    Otherwise, use current UTC hour and previous hour.
+    Returns (used_base, json_files)
+    """
+    if date_arg and hour_arg:
+        # explicit backfill path like dt=2025-10-04/HH=14
+        base = f"/opt/data/bronze/dt={date_arg}/HH={hour_arg.zfill(2)}"
+        files = sorted(glob.glob(os.path.join(base, "*.json")))
+        return base, files
+
+    # default live mode: now and previous hour
     now = datetime.utcnow()
+    current_base = f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}"
+    prev_hour = now - timedelta(hours=1)
+    prev_base = f"/opt/data/bronze/dt={prev_hour:%Y-%m-%d}/HH={prev_hour:%H}"
+
+    for base in [current_base, prev_base]:
+        files = sorted(glob.glob(os.path.join(base, "*.json")))
+        if files:
+            return base, files
+
+    # nothing
+    return None, []
+
+
+def main():
+
+    # parse optional backfill args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--date", help="Partition date like 2025-10-04 (UTC)", required=False)
+    parser.add_argument("--hour", help="Hour (00-23) UTC for that date", required=False)
+    args = parser.parse_args()
+
+    env = get_env()
     spark = build_spark()
     spark.sparkContext.setLogLevel("WARN")
 
-    # Candidate hour partitions: current hour, then previous hour
-    current_base  = f"/opt/data/bronze/dt={now:%Y-%m-%d}/HH={now:%H}"
-    prev_hour     = (now.replace(minute=0, second=0, microsecond=0))
-    prev_base     = f"/opt/data/bronze/dt={prev_hour:%Y-%m-%d}/HH={(prev_hour.hour-1)%24:02d}"
-
-    candidates = [current_base, prev_base]
-
-    json_files = []
-    real_base = None
-    for base in candidates:
-        files = glob.glob(os.path.join(base, "*.json"))
-        if files:
-            json_files = files
-            real_base = base
-            break
+    used_base, json_files = resolve_input_partitions(args.date, args.hour)
 
     if not json_files:
         # Nothing to process this run; exit gracefully
-        print(f"[INFO] No JSON files found in {candidates}. Nothing to process.")
+        print(f"[INFO] No JSON files found in {used_base}. Nothing to process.")
         spark.stop()
         return
 
-    print(f"[INFO] Reading {len(json_files)} files from {real_base}:")
+    print(f"[INFO] Reading {len(json_files)} files from {used_base}:")
     for f in json_files[:5]:
         print(f"  - {os.path.basename(f)}")
     if len(json_files) > 5:
@@ -150,9 +171,16 @@ def main():
     df_raw = spark.read.schema(schema_geojson()).json(json_files)
     flat = flatten(df_raw)
 
+    # Decide which datetime to use for silver partitioning
+    # If user passed explicit date/hour, honor that. Otherwise, use current UTC.
+    if args.date and args.hour:
+        partition_dt = datetime.strptime(f"{args.date} {args.hour}", "%Y-%m-%d %H")
+    else:
+        partition_dt = datetime.utcnow()
+
     # Use the directory we actually read from to decide silver partition
     # If you prefer “current hour only”, keep silver_path(now)
-    write_silver(flat, silver_path(now))
+    write_silver(flat, silver_path(partition_dt))
 
     # Stage to Postgres for UPSERT in Airflow
     write_staging_postgres(flat, env)
