@@ -63,9 +63,9 @@ def flatten(df):
         F.col("f.properties.place").alias("place"),
         F.col("f.properties.tsunami").alias("tsunami"),
         F.col("f.properties.alert").alias("alert"),
-        F.element_at("f.geometry.coordinates", 2).alias("depth_km"),
-        F.element_at("f.geometry.coordinates", 1).alias("latitude"),
-        F.element_at("f.geometry.coordinates", 0).alias("longitude"),
+        F.element_at("f.geometry.coordinates", 3).alias("depth_km"),
+        F.element_at("f.geometry.coordinates", 2).alias("latitude"),
+        F.element_at("f.geometry.coordinates", 1).alias("longitude"),
     ).withColumns({
         # Epoch ms -> TIMESTAMP (UTC). We avoid to_utc_timestamp because we already pin session TZ to UTC.
         "event_time_utc": F.to_timestamp((F.col("time_ms")/1000).cast("timestamp")),
