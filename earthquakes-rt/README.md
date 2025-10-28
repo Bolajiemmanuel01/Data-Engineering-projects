@@ -37,7 +37,8 @@ earthquakes-rt/
 ├─ airflow/
 │  └─ dags/
 │     ├─ eq_poll_usgs.py
-│     └─ eq_spark_batch.py
+│     ├─ eq_spark_batch.py
+│     └─ eq_daily_rollup.py
 ├─ spark/
 │  ├─ jobs/
 │  │  ├─ batch_transform.py
