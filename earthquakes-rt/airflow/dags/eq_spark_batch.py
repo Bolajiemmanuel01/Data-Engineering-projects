@@ -69,7 +69,7 @@ with DAG(
     schedule="@hourly",  # trigger manually for MVP; make "@hourly" later
     catchup=False,
     default_args=default_args,
-    tags=["earthquakes", "silver", "gold"],
+    tags=["earthquakes", "silver", "gold","spark","postgres"],
 ) as dag:
 
     spark_batch = DockerOperator(

@@ -1,0 +1,4 @@
+# ignore my local-only configuration the need to recheck
+data/bronze/
+data/silver/
+data/gold/
